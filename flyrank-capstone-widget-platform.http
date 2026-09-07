@@ -1,0 +1,6 @@
+@flyrank_capstone_widget_platform_HostAddress = http://localhost:5296
+
+GET {{flyrank_capstone_widget_platform_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
