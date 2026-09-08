@@ -1,3 +1,6 @@
 <Solution>
-  <Project Path="flyrank-capstone-widget-platform.csproj" />
+  <Project Path="src/WidgetPlatform.Application/WidgetPlatform.Application.csproj" Id="2860ae23-0930-4c47-9875-a991329f2247" />
+  <Project Path="src/WidgetPlatform.Data/WidgetPlatform.Data.csproj" Id="91bfe4ef-e511-40bf-8207-cd11c3cc02bc" />
+  <Project Path="src/WidgetPlatform.Domain/WidgetPlatform.Domain.csproj" Id="9df792e5-9094-4d1d-a571-0bf61c63366f" />
+  <Project Path="src/WidgetPlatform.Api/WidgetPlatform.Api.csproj" />
 </Solution>

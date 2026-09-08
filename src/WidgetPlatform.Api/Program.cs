@@ -1,5 +1,9 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using WidgetPlatform.Data;
+using WidgetPlatform.Domain;
 
-namespace flyrank_capstone_widget_platform
+namespace WidgetPlatform.Api
 {
     public class Program
     {
@@ -13,6 +17,13 @@ namespace flyrank_capstone_widget_platform
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
 
+            builder.Services.AddDbContext<WidgetPlatformDbContext>(options =>
+                options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+
+            builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+                .AddEntityFrameworkStores<WidgetPlatformDbContext>()
+                .AddDefaultTokenProviders();
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -23,6 +34,7 @@ namespace flyrank_capstone_widget_platform
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
 
