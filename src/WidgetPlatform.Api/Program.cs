@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using WidgetPlatform.Application.Services;
 using WidgetPlatform.Data;
 using WidgetPlatform.Domain;
 
@@ -23,6 +24,8 @@ namespace WidgetPlatform.Api
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<WidgetPlatformDbContext>()
                 .AddDefaultTokenProviders();
+
+            builder.Services.AddScoped<IAuthService, AuthService>();
 
             var app = builder.Build();
 
