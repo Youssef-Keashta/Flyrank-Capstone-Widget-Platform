@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using WidgetPlatform.Application.DTOs;
 using WidgetPlatform.Domain;
 
@@ -16,10 +20,12 @@ namespace WidgetPlatform.Application.Services
     public class AuthService : IAuthService
     {
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IConfiguration _configuration;
 
-        public AuthService(UserManager<ApplicationUser> userManager)
+        public AuthService(UserManager<ApplicationUser> userManager, IConfiguration configuration)
         {
             _userManager = userManager;
+            _configuration = configuration;
         }
 
         public async Task<AuthResult> RegisterAsync(RegisterRequest request)
@@ -41,8 +47,30 @@ namespace WidgetPlatform.Application.Services
             if (!validPassword)
                 return new AuthResult(false, "Invalid credentials");
 
-            // TODO: generate a real signed JWT here.
-            return new AuthResult(true, null, Token: "PLACEHOLDER-NO-REAL-TOKEN-YET");
+            var token = GenerateJwt(user!);
+            return new AuthResult(true, null, Token: token);
+        }
+
+        private string GenerateJwt(ApplicationUser user)
+        {
+            var claims = new[]
+            {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email!),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:SigningKey"]!));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(double.Parse(_configuration["Jwt:ExpiryMinutes"]!)),
+                signingCredentials: creds);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }

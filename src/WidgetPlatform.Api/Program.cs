@@ -1,5 +1,9 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using WidgetPlatform.Application.Services;
 using WidgetPlatform.Data;
 using WidgetPlatform.Domain;
@@ -10,6 +14,8 @@ namespace WidgetPlatform.Api
     {
         public static void Main(string[] args)
         {
+            JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
+
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
@@ -26,6 +32,29 @@ namespace WidgetPlatform.Api
                 .AddDefaultTokenProviders();
 
             builder.Services.AddScoped<IAuthService, AuthService>();
+
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
+
+                    ValidateAudience = true,
+                    ValidAudience = builder.Configuration["Jwt:Audience"],
+
+                    ValidateLifetime = true,
+
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SigningKey"]!))
+                };
+            });
 
             var app = builder.Build();
 

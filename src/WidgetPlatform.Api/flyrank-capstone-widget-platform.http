@@ -48,3 +48,14 @@ Content-Type: application/json
   "email": "test@example.com",
   "password": "WrongPassword1!"
 }
+
+### Me - with valid token
+GET https://localhost:7111/api/auth/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYWEwNzE2OS04ZGMxLTRiYzgtYWJjYS04NGY4M2E0ZmQ1MzMiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJqdGkiOiI4YzI1MWYwNS1jNzI0LTRmMzktOWM2Mi1iMjc4MGUzMjNkYzMiLCJleHAiOjE3ODg5ODkxODQsImlzcyI6IldpZGdldFBsYXRmb3JtQXBpIiwiYXVkIjoiV2lkZ2V0UGxhdGZvcm1DbGllbnQifQ.ievhOEanvaHP0v9e6AK6AzYdF_k3A35CAoPX4fg2wJs
+
+### Me - no token (should be 401)
+GET https://localhost:7111/api/auth/me
+
+### Me - garbage token (should be 401)
+GET https://localhost:7111/api/auth/me
+Authorization: Bearer garbage.not.a.real.token

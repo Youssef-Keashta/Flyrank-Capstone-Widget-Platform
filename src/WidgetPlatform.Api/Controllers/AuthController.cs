@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using WidgetPlatform.Application.DTOs;
 using WidgetPlatform.Application.Services;
 
@@ -24,6 +25,15 @@ namespace flyrank_capstone_widget_platform.Controllers
         {
             var result = await _authService.LoginAsync(request);
             return result.Succeeded ? Ok(new { token = result.Token }) : Unauthorized(new { error = result.Error });
+        }
+
+        [Authorize]
+        [HttpGet("me")]
+        public IActionResult Me()
+        {
+            var userId = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+            var email = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Email)?.Value;
+            return Ok(new { userId, email });
         }
     }
 }
