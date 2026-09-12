@@ -59,3 +59,75 @@ GET https://localhost:7111/api/auth/me
 ### Me - garbage token (should be 401)
 GET https://localhost:7111/api/auth/me
 Authorization: Bearer garbage.not.a.real.token
+
+### 1. Register second tenant (test3)
+POST https://localhost:7111/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "test3@example.com",
+  "password": "StrongPass1!"
+}
+
+### 2. Login as tenant A (test@example.com) - copy this token as TOKEN_A
+POST https://localhost:7111/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "StrongPass1!"
+}
+
+### 3. Login as tenant B (test3@example.com) - copy this token as TOKEN_B
+POST https://localhost:7111/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test3@example.com",
+  "password": "StrongPass1!"
+}
+
+### 4. As tenant A: create a widget - copy the returned "id" as WIDGET_A_ID
+POST https://localhost:7111/api/widgets
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYWEwNzE2OS04ZGMxLTRiYzgtYWJjYS04NGY4M2E0ZmQ1MzMiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJqdGkiOiIyMzk2MDQyNy0yNjE1LTQ2NDQtYjUzOC00OGQzNzZjMDllNGIiLCJleHAiOjE3ODkwNTcwMTMsImlzcyI6IldpZGdldFBsYXRmb3JtQXBpIiwiYXVkIjoiV2lkZ2V0UGxhdGZvcm1DbGllbnQifQ.ZpxRG3Y_lalv5bvNmCmvlpb7GBpkUL6V_-xbzyBuxLU
+
+{
+  "type": "SignupForm",
+  "title": "Newsletter Signup",
+  "description": "Join our list",
+  "fieldsJson": "[{\"name\":\"email\",\"label\":\"Email\",\"type\":\"email\",\"required\":true}]",
+  "buttonText": "Subscribe",
+  "displayOptionsJson": null
+}
+
+### 5. As tenant A: get the widget by id - should return 200 with the widget
+GET https://localhost:7111/api/widgets/07298df4-ee73-4b9f-834c-19987cfe630a
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYWEwNzE2OS04ZGMxLTRiYzgtYWJjYS04NGY4M2E0ZmQ1MzMiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJqdGkiOiIyMzk2MDQyNy0yNjE1LTQ2NDQtYjUzOC00OGQzNzZjMDllNGIiLCJleHAiOjE3ODkwNTcwMTMsImlzcyI6IldpZGdldFBsYXRmb3JtQXBpIiwiYXVkIjoiV2lkZ2V0UGxhdGZvcm1DbGllbnQifQ.ZpxRG3Y_lalv5bvNmCmvlpb7GBpkUL6V_-xbzyBuxLU
+
+### 6. As tenant B: get tenant A's widget by id - should be 404
+GET https://localhost:7111/api/widgets/07298df4-ee73-4b9f-834c-19987cfe630a
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhYzU4YWI5ZS0yMTMzLTQ3NDAtYTE3NS1jYmUzNjhlM2Q4ODciLCJlbWFpbCI6InRlc3QzQGV4YW1wbGUuY29tIiwianRpIjoiZDUyMDg2YTItNGQ5Zi00MzlmLWE0NGUtODFkYWIyOWNiMThiIiwiZXhwIjoxNzg5MDU3MDYzLCJpc3MiOiJXaWRnZXRQbGF0Zm9ybUFwaSIsImF1ZCI6IldpZGdldFBsYXRmb3JtQ2xpZW50In0.ZnTb1ZzciglOaBDckME917g3ersgjYeTAPB_iEbnljg
+
+### 7. As tenant B: list widgets - should be an empty array
+GET https://localhost:7111/api/widgets
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhYzU4YWI5ZS0yMTMzLTQ3NDAtYTE3NS1jYmUzNjhlM2Q4ODciLCJlbWFpbCI6InRlc3QzQGV4YW1wbGUuY29tIiwianRpIjoiZDUyMDg2YTItNGQ5Zi00MzlmLWE0NGUtODFkYWIyOWNiMThiIiwiZXhwIjoxNzg5MDU3MDYzLCJpc3MiOiJXaWRnZXRQbGF0Zm9ybUFwaSIsImF1ZCI6IldpZGdldFBsYXRmb3JtQ2xpZW50In0.ZnTb1ZzciglOaBDckME917g3ersgjYeTAPB_iEbnljg
+
+### 8. As tenant B: try to delete tenant A's widget - should be 404
+DELETE https://localhost:7111/api/widgets/07298df4-ee73-4b9f-834c-19987cfe630a
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhYzU4YWI5ZS0yMTMzLTQ3NDAtYTE3NS1jYmUzNjhlM2Q4ODciLCJlbWFpbCI6InRlc3QzQGV4YW1wbGUuY29tIiwianRpIjoiZDUyMDg2YTItNGQ5Zi00MzlmLWE0NGUtODFkYWIyOWNiMThiIiwiZXhwIjoxNzg5MDU3MDYzLCJpc3MiOiJXaWRnZXRQbGF0Zm9ybUFwaSIsImF1ZCI6IldpZGdldFBsYXRmb3JtQ2xpZW50In0.ZnTb1ZzciglOaBDckME917g3ersgjYeTAPB_iEbnljg
+
+### 9. As tenant A: confirm the widget still exists after tenant B's failed delete attempt
+GET https://localhost:7111/api/widgets/07298df4-ee73-4b9f-834c-19987cfe630a
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYWEwNzE2OS04ZGMxLTRiYzgtYWJjYS04NGY4M2E0ZmQ1MzMiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJqdGkiOiIyMzk2MDQyNy0yNjE1LTQ2NDQtYjUzOC00OGQzNzZjMDllNGIiLCJleHAiOjE3ODkwNTcwMTMsImlzcyI6IldpZGdldFBsYXRmb3JtQXBpIiwiYXVkIjoiV2lkZ2V0UGxhdGZvcm1DbGllbnQifQ.ZpxRG3Y_lalv5bvNmCmvlpb7GBpkUL6V_-xbzyBuxLU
+
+### Create widget with no token - should be 401
+POST https://localhost:7111/api/widgets
+Content-Type: application/json
+
+{
+  "type": "SignupForm",
+  "title": "Test",
+  "fieldsJson": "[]",
+  "buttonText": "Go"
+}

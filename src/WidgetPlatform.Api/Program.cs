@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -20,8 +21,10 @@ namespace WidgetPlatform.Api
 
             // Add services to the container.
 
-            builder.Services.AddControllers();
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+            builder.Services.AddControllers()
+                .AddJsonOptions(options =>
+                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
             builder.Services.AddOpenApi();
 
             builder.Services.AddDbContext<WidgetPlatformDbContext>(options =>
@@ -32,6 +35,7 @@ namespace WidgetPlatform.Api
                 .AddDefaultTokenProviders();
 
             builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IWidgetService, WidgetService>();
 
             builder.Services.AddAuthentication(options =>
             {

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using WidgetPlatform.Application.DTOs;
 using WidgetPlatform.Application.Services;
 
-namespace flyrank_capstone_widget_platform.Controllers
+namespace WidgetPlatform.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

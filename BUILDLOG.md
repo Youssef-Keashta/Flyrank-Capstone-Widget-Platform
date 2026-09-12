@@ -93,4 +93,43 @@
   submission — no refresh-token flow, treating that as an explicit
   non-goal given the brief doesn't require it.
 - Login now generates a real signed JWT; AddAuthentication/AddJwtBearer
-  pipeline wiring in Program.cs is the next step, not yet done.
+  pipeline wiring in Program.cs is done and verified (valid token accepted,
+  claims correctly read after fixing a claim-remapping issue — see below).
+
+### JWT claim mapping bug (real .NET gotcha, not my mistake)
+- First test of the protected /api/auth/me endpoint returned null for both
+  claims despite a valid, accepted token (200, not 401). Root cause:
+  JwtSecurityTokenHandler silently remaps short claim names ("sub", "email")
+  to long legacy URIs when reading inbound tokens by default, so
+  User.FindFirst(JwtRegisteredClaimNames.Sub) found nothing even though the
+  token genuinely contained a "sub" claim. Fixed with
+  JwtSecurityTokenHandler.DefaultMapInboundClaims = false at Program.cs
+  startup. Well-documented ASP.NET Core quirk, not something either of us
+  did wrong — just an easy trap on a first JWT implementation.
+
+## Decision: skipped the Repository pattern
+- Discussed with Claude whether to keep the Repository-over-DbSet pattern
+  from IWMS or have the Application service call WidgetPlatformDbContext
+  directly. Decided to skip Repository here — EF Core's DbSet/DbContext
+  already provides repository + unit-of-work behavior, and an extra
+  interface layer over it wouldn't meaningfully help this project, versus
+  spending that time on the genuinely new parts (CORS, rate limiting,
+  fallback chains).
+
+## Widget CRUD + tenant isolation
+- Built WidgetService/WidgetsController with every read/update/delete query
+  filtering by (Id == widgetId && OwnerId == ownerId) in the same WHERE
+  clause — not fetch-then-check in C# — so a cross-tenant row can't be
+  returned even if a later code change forgot an explicit check.
+- Controller returns 404 (never 403) for both "doesn't exist" and "exists
+  but belongs to another tenant," per the design doc's rule about not
+  leaking existence of other tenants' data.
+- Hit a real bug during testing: sending the enum Type as a string
+  ("SignupForm") failed to deserialize, because ASP.NET Core's default JSON
+  serializer expects enums as integers. Fixed properly (not just worked
+  around) by adding JsonStringEnumConverter in Program.cs, so the API
+  accepts self-documenting string values instead of magic numbers.
+- Proved tenant isolation with two real registered users end-to-end: tenant
+  B correctly gets 404 reading or deleting tenant A's widget, tenant B's
+  list is correctly empty, and tenant A's data is provably unaffected by
+  tenant B's failed delete attempt (re-fetched afterward to confirm).
