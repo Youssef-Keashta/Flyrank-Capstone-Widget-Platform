@@ -36,6 +36,7 @@ namespace WidgetPlatform.Api
 
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IWidgetService, WidgetService>();
+            builder.Services.AddScoped<ISubmissionService, SubmissionService>();
 
             builder.Services.AddAuthentication(options =>
             {
@@ -60,7 +61,26 @@ namespace WidgetPlatform.Api
                 };
             });
 
+            builder.WebHost.ConfigureKestrel(options =>
+            {
+                options.Limits.MaxRequestBodySize = 16 * 1024;
+            });
+
             var app = builder.Build();
+
+            app.Use(async (context, next) =>
+            {
+                try
+                {
+                    await next();
+                }
+                catch (Microsoft.AspNetCore.Http.BadHttpRequestException ex)
+                {
+                    context.Response.StatusCode = ex.StatusCode;
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsJsonAsync(new { error = "Request payload too large or malformed." });
+                }
+            });
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
