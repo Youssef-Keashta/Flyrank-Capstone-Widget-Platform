@@ -130,7 +130,116 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYWEwNzE2O
 ```
 
 ## Public submission API
-- [ ] Not yet built.
+
+- [x] Cross-origin submissions work: CORS headers correct, preflight (OPTIONS) handled.
+- [x] All incoming input validated; malformed and oversized payloads rejected with appropriate 4xx codes and JSON errors.
+- [x] Valid submissions stored safely, linked to the right widget and tenant.
+
+**Valid submission — stored and linked to the correct widget:**
+```
+POST https://localhost:7111/api/submissions
+Content-Type: application/json
+
+{
+  "widgetId": "07298df4-ee73-4b9f-834c-19987cfe630a",
+  "data": { "email": "visitor@example.com" }
+}
+-------------------------------------------------------------------------
+201 Created
+{
+  "id": "61c742b0-fac4-4a4e-9800-27803af6ab03",
+  "widgetId": "07298df4-ee73-4b9f-834c-19987cfe630a",
+  "createdAt": "2026-09-21T09:16:27.9134526Z"
+}
+```
+Confirmed in pgAdmin: the row's OwnerId matches the widget's owner (denormalized per DESIGN.md), not left null or mismatched.
+
+**Missing required field — clean 400, not a 500:**
+```
+POST https://localhost:7111/api/submissions
+Content-Type: application/json
+
+{
+  "widgetId": "07298df4-ee73-4b9f-834c-19987cfe630a",
+  "data": {}
+}
+-------------------------------------------------------------------------
+400 Bad Request
+{"error":"'email' is required."}
+```
+
+**Nonexistent widget — clean 404:**
+```
+POST https://localhost:7111/api/submissions
+Content-Type: application/json
+
+{
+  "widgetId": "00000000-0000-0000-0000-000000000000",
+  "data": { "email": "visitor@example.com" }
+}
+-------------------------------------------------------------------------
+404 Not Found
+{"error":"Widget not found"}
+```
+
+**Oversized payload (>16KB) — clean 413, no leaked stack trace:**
+```
+POST https://localhost:7111/api/submissions
+Content-Type: application/json
+
+{
+  "widgetId": "07298df4-ee73-4b9f-834c-19987cfe630a",
+  "data": { "email": "<50,000+ char value>@example.com" }
+}
+-------------------------------------------------------------------------
+413 (confirmed via .http client status line)
+{"error":"Request payload too large or malformed."}
+```
+First attempt at this leaked a raw 500 with a full stack trace instead — fixed by adding global
+exception-handling middleware (see BUILDLOG.md) before this result was captured.
+
+**CORS — real browser test, not just .http requests (which bypass CORS entirely):**
+
+Built a genuinely separate origin — `test-site/index.html`, a plain HTML+fetch page served via
+`npx serve` on `http://localhost:5500` — and tested from an actual browser with DevTools open.
+
+Step 1 — before any CORS config, confirmed the real failure mode:
+```
+Console: Access to fetch at 'https://localhost:7111/api/submissions' from origin
+'http://localhost:5500' has been blocked by CORS policy: Response to preflight request
+doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present
+on the requested resource.
+POST https://localhost:7111/api/submissions net::ERR_FAILED
+```
+
+Step 2 — after adding AddCors + [EnableCors] on SubmissionsController, with app.UseCors()
+(no default policy) in the pipeline — confirmed via DevTools Network tab, two requests fired
+in order:
+```
+submissions   OPTIONS   204   (Preflight)
+submissions   POST      201   (fetch)
+```
+Response body from the browser:
+```
+Success: {
+  "id": "d1cb4c0a-099b-4e3b-a330-2cd3bba18c60",
+  "widgetId": "07298df4-ee73-4b9f-834c-19987cfe630a",
+  "createdAt": "2026-09-22T08:58:01.6786769Z"
+}
+```
+
+Step 3 — confirmed the CORS policy is correctly scoped, not globally open: a second button on
+the same test page calling `GET /api/widgets` (an owner-only endpoint) from the same origin was
+correctly blocked:
+```
+Console: Access to fetch at 'https://localhost:7111/api/widgets' from origin
+'http://localhost:5500' has been blocked by CORS policy: No 'Access-Control-Allow-Origin'
+header is present on the requested resource.
+GET https://localhost:7111/api/widgets net::ERR_FAILED 401 (Unauthorized)
+Correctly blocked: Failed to fetch
+```
+Submissions endpoint still worked in the same test run — confirming the CORS policy is applied
+per-endpoint (via [EnableCors]), not globally.
 
 ## Abuse protection
 - [ ] Not yet built.

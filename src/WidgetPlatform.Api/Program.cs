@@ -61,6 +61,18 @@ namespace WidgetPlatform.Api
                 };
             });
 
+            const string PublicWidgetCorsPolicy = "PublicWidgetPolicy";
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy(PublicWidgetCorsPolicy, policy =>
+                {
+                    policy.WithOrigins("http://localhost:5500")
+                          .AllowAnyMethod()
+                          .AllowAnyHeader();
+                });
+            });
+
             builder.WebHost.ConfigureKestrel(options =>
             {
                 options.Limits.MaxRequestBodySize = 16 * 1024;
@@ -89,7 +101,7 @@ namespace WidgetPlatform.Api
             }
 
             app.UseHttpsRedirection();
-
+            app.UseCors();
             app.UseAuthentication();
             app.UseAuthorization();
 

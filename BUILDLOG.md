@@ -133,3 +133,55 @@
   B correctly gets 404 reading or deleting tenant A's widget, tenant B's
   list is correctly empty, and tenant A's data is provably unaffected by
   tenant B's failed delete attempt (re-fetched afterward to confirm).
+
+## Public submission endpoint
+- Built SubmissionService/SubmissionsController: validates a submission's
+  data against the target widget's own FieldsJson field definitions (name,
+  type, required) rather than accepting an arbitrary blob, per the brief's
+  "validate every field before it touches business logic" requirement.
+- Hit a real bug: JsonSerializer.Deserialize<List<WidgetFieldDefinition>>
+  on Widget.FieldsJson threw ArgumentNullException because the JSON keys
+  were lowercase ("name") but my C# properties are PascalCase ("Name"),
+  and System.Text.Json is case-sensitive by default. Model binding on
+  incoming HTTP request DTOs handles this automatically, but a manual
+  JsonSerializer.Deserialize call (like this one, on a database column) does
+  not — fixed by explicitly passing PropertyNameCaseInsensitive = true.
+- Added a Kestrel MaxRequestBodySize limit (16KB) so oversized payloads are
+  rejected. First pass leaked a full stack trace as a raw 500 instead of a
+  clean 4xx (the brief explicitly requires clean JSON errors, never a 500).
+  Fixed by adding global exception-handling middleware, registered as the
+  very first thing in the pipeline, that catches BadHttpRequestException
+  and returns clean JSON with the correct status code (413).
+- Verified all cases via .http requests: valid submission (201), missing
+  required field (400 with specific message), nonexistent widget (404),
+  oversized payload (413 with clean JSON body, no stack trace).
+
+## CORS
+- Built a genuinely separate "customer site" (test-site/index.html, plain
+  HTML + fetch, served via `npx serve` on port 5500) to test this for real,
+  since .http file requests bypass the browser entirely and don't exercise
+  CORS at all — a lesson in itself, that testing via Postman/.http doesn't
+  prove cross-origin behavior works.
+- First run (deliberately, before adding any CORS config) confirmed the
+  real failure mode: browser console showed a CORS policy error on the
+  preflight OPTIONS request, and the POST never actually reached the
+  server — different from a validation or auth failure, which was worth
+  seeing directly rather than just being told about it.
+- Added AddCors + app.UseCors(policy) globally at first to prove the
+  mechanism worked, then narrowed it: moved to app.UseCors() (no default
+  policy argument) plus [EnableCors("PublicWidgetPolicy")] on
+  SubmissionsController only, so the owner/auth endpoints stay same-origin
+  by default.
+- Hit a real gotcha narrowing this: I first deleted app.UseCors(policy)
+  entirely, assuming [EnableCors] alone was enough. It isn't — the CORS
+  middleware has to be present in the pipeline for [EnableCors]/[DisableCors]
+  attributes to mean anything; removing the middleware disabled CORS
+  everywhere, including on the endpoint that needed it. Fixed by keeping a
+  bare app.UseCors() (no default policy) rather than removing it outright.
+- Verified end-to-end in the browser: initial failure (blocked), then
+  over-broad success (worked, but /api/widgets was also improperly
+  reachable), then correctly-scoped success (submissions work,
+  /api/widgets correctly still CORS-blocked) — confirmed via DevTools
+  Console and Network tab (saw the actual OPTIONS preflight followed by
+  the real POST, with Access-Control-Allow-Origin present only where
+  expected).

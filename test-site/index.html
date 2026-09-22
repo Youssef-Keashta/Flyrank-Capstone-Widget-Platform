@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head><title>Customer Test Site</title></head>
+<body>
+  <h1>Pretend Customer Website</h1>
+  <button id="submitBtn">Submit test data</button>
+  <button id="testWidgetsBtn">Try /api/widgets (should FAIL if CORS is scoped correctly)</button>
+  <pre id="result"></pre>
+
+  <script>
+    document.getElementById('submitBtn').addEventListener('click', async () => {
+      const resultEl = document.getElementById('result');
+      resultEl.textContent = 'Sending...';
+      try {
+        const response = await fetch('https://localhost:7111/api/submissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            widgetId: '07298df4-ee73-4b9f-834c-19987cfe630a',
+            data: { email: 'browser-test@example.com' }
+          })
+        });
+        const json = await response.json();
+        resultEl.textContent = 'Success: ' + JSON.stringify(json, null, 2);
+      } catch (err) {
+        resultEl.textContent = 'Failed: ' + err.message;
+      }
+    });
+    document.getElementById('testWidgetsBtn').addEventListener('click', async () => {
+  try {
+    const response = await fetch('https://localhost:7111/api/widgets');
+    console.log('Unexpected success:', response.status);
+  } catch (err) {
+    console.log('Correctly blocked:', err.message);
+  }
+});
+  </script>
+</body>
+</html>

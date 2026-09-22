@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Mvc;
 using WidgetPlatform.Application.DTOs;
 using WidgetPlatform.Application.Services;
 
@@ -6,6 +7,7 @@ namespace flyrank_capstone_widget_platform.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [EnableCors("PublicWidgetPolicy")]
     public class SubmissionsController : ControllerBase
     {
         private readonly ISubmissionService _submissionService;
