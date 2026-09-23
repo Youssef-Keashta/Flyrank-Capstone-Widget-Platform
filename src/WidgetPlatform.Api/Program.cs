@@ -108,6 +108,12 @@ namespace WidgetPlatform.Api
 
             app.MapControllers();
 
+            app.MapGet("/widget.v1.js", (HttpContext ctx) =>
+            {
+                ctx.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+                return Results.Text(WidgetPlatform.Api.StaticContent.WidgetScript.Content, "application/javascript");
+            });
+
             app.Run();
         }
     }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using WidgetPlatform.Application.Models;
 using WidgetPlatform.Domain;
 
 namespace WidgetPlatform.Application.DTOs
@@ -23,14 +24,25 @@ namespace WidgetPlatform.Application.DTOs
     );
 
     public record WidgetResponse(
-        Guid Id,
-        WidgetType Type,
-        string Title,
-        string? Description,
-        string FieldsJson,
-        string ButtonText,
-        string? DisplayOptionsJson,
-        int Version,
-        DateTime CreatedAt
+    Guid Id,
+    WidgetType Type,
+    string Title,
+    string? Description,
+    string FieldsJson,
+    string ButtonText,
+    string? DisplayOptionsJson,
+    int Version,
+    DateTime CreatedAt,
+    string EmbedSnippet
+    );
+    public record WidgetConfigResponse(
+    Guid Id,
+    string Type,
+    string Title,
+    string? Description,
+    string FieldsJson,
+    string ButtonText,
+    string? DisplayOptionsJson,
+    int Version
     );
 }

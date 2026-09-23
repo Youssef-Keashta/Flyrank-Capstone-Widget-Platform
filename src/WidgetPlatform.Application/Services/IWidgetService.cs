@@ -12,5 +12,6 @@ namespace WidgetPlatform.Application.Services
         Task<WidgetResponse?> GetByIdAsync(string ownerId, Guid widgetId);
         Task<WidgetResponse?> UpdateAsync(string ownerId, Guid widgetId, UpdateWidgetRequest request);
         Task<bool> DeleteAsync(string ownerId, Guid widgetId);
+        Task<WidgetConfigResponse?> GetPublicConfigAsync(Guid widgetId);
     }
 }

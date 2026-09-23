@@ -1,88 +1,98 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using WidgetPlatform.Application.DTOs;
 using WidgetPlatform.Data;
 using WidgetPlatform.Domain;
-using Microsoft.EntityFrameworkCore;
 
-namespace WidgetPlatform.Application.Services
+namespace WidgetPlatform.Application.Services;
+
+public class WidgetService : IWidgetService
 {
-    public class WidgetService : IWidgetService
+    private readonly WidgetPlatformDbContext _db;
+    private readonly IConfiguration _configuration;
+
+    public WidgetService(WidgetPlatformDbContext db, IConfiguration configuration)
     {
-        private readonly WidgetPlatformDbContext _db;
+        _db = db;
+        _configuration = configuration;
+    }
 
-        public WidgetService(WidgetPlatformDbContext db) => _db = db;
-
-        public async Task<WidgetResponse> CreateAsync(string ownerId, CreateWidgetRequest request)
+    public async Task<WidgetResponse> CreateAsync(string ownerId, CreateWidgetRequest request)
+    {
+        var widget = new Widget
         {
-            var widget = new Widget
-            {
-                Id = Guid.NewGuid(),
-                OwnerId = ownerId,
-                Type = request.Type,
-                Title = request.Title,
-                Description = request.Description,
-                FieldsJson = request.FieldsJson,
-                ButtonText = request.ButtonText,
-                DisplayOptionsJson = request.DisplayOptionsJson,
-                Version = 1,
-                CreatedAt = DateTime.UtcNow
-            };
+            Id = Guid.NewGuid(),
+            OwnerId = ownerId,
+            Type = request.Type,
+            Title = request.Title,
+            Description = request.Description,
+            FieldsJson = request.FieldsJson,
+            ButtonText = request.ButtonText,
+            DisplayOptionsJson = request.DisplayOptionsJson,
+            Version = 1,
+            CreatedAt = DateTime.UtcNow
+        };
 
-            _db.Widgets.Add(widget);
-            await _db.SaveChangesAsync();
+        _db.Widgets.Add(widget);
+        await _db.SaveChangesAsync();
 
-            return ToResponse(widget);
-        }
+        return ToResponse(widget);
+    }
 
-        public async Task<List<WidgetResponse>> GetAllAsync(string ownerId)
-        {
-            return await _db.Widgets
-                .Where(w => w.OwnerId == ownerId)
-                .Select(w => ToResponse(w))
-                .ToListAsync();
-        }
+    public async Task<List<WidgetResponse>> GetAllAsync(string ownerId)
+    {
+        var widgets = await _db.Widgets.Where(w => w.OwnerId == ownerId).ToListAsync();
+        return widgets.Select(ToResponse).ToList();
+    }
 
-        public async Task<WidgetResponse?> GetByIdAsync(string ownerId, Guid widgetId)
-        {
-            var widget = await _db.Widgets
-                .FirstOrDefaultAsync(w => w.Id == widgetId && w.OwnerId == ownerId);
+    public async Task<WidgetResponse?> GetByIdAsync(string ownerId, Guid widgetId)
+    {
+        var widget = await _db.Widgets.FirstOrDefaultAsync(w => w.Id == widgetId && w.OwnerId == ownerId);
+        return widget is null ? null : ToResponse(widget);
+    }
 
-            return widget is null ? null : ToResponse(widget);
-        }
+    public async Task<WidgetResponse?> UpdateAsync(string ownerId, Guid widgetId, UpdateWidgetRequest request)
+    {
+        var widget = await _db.Widgets.FirstOrDefaultAsync(w => w.Id == widgetId && w.OwnerId == ownerId);
+        if (widget is null) return null;
 
-        public async Task<WidgetResponse?> UpdateAsync(string ownerId, Guid widgetId, UpdateWidgetRequest request)
-        {
-            var widget = await _db.Widgets
-                .FirstOrDefaultAsync(w => w.Id == widgetId && w.OwnerId == ownerId);
+        widget.Title = request.Title;
+        widget.Description = request.Description;
+        widget.FieldsJson = request.FieldsJson;
+        widget.ButtonText = request.ButtonText;
+        widget.DisplayOptionsJson = request.DisplayOptionsJson;
+        widget.Version += 1;
 
-            if (widget is null) return null;
+        await _db.SaveChangesAsync();
+        return ToResponse(widget);
+    }
 
-            widget.Title = request.Title;
-            widget.Description = request.Description;
-            widget.FieldsJson = request.FieldsJson;
-            widget.ButtonText = request.ButtonText;
-            widget.DisplayOptionsJson = request.DisplayOptionsJson;
-            widget.Version += 1; 
+    public async Task<bool> DeleteAsync(string ownerId, Guid widgetId)
+    {
+        var widget = await _db.Widgets.FirstOrDefaultAsync(w => w.Id == widgetId && w.OwnerId == ownerId);
+        if (widget is null) return false;
 
-            await _db.SaveChangesAsync();
-            return ToResponse(widget);
-        }
+        _db.Widgets.Remove(widget);
+        await _db.SaveChangesAsync();
+        return true;
+    }
 
-        public async Task<bool> DeleteAsync(string ownerId, Guid widgetId)
-        {
-            var widget = await _db.Widgets
-                .FirstOrDefaultAsync(w => w.Id == widgetId && w.OwnerId == ownerId);
+    public async Task<WidgetConfigResponse?> GetPublicConfigAsync(Guid widgetId)
+    {
+        var widget = await _db.Widgets.FirstOrDefaultAsync(w => w.Id == widgetId);
+        if (widget is null) return null;
 
-            if (widget is null) return false;
+        return new WidgetConfigResponse(
+            widget.Id, widget.Type.ToString(), widget.Title, widget.Description,
+            widget.FieldsJson, widget.ButtonText, widget.DisplayOptionsJson, widget.Version);
+    }
 
-            _db.Widgets.Remove(widget);
-            await _db.SaveChangesAsync();
-            return true;
-        }
+    private WidgetResponse ToResponse(Widget w)
+    {
+        var baseUrl = _configuration["App:PublicBaseUrl"];
+        var snippet = $"<script src=\"{baseUrl}/widget.v1.js?id={w.Id}\"></script>";
 
-        private static WidgetResponse ToResponse(Widget w) =>
-            new(w.Id, w.Type, w.Title, w.Description, w.FieldsJson, w.ButtonText, w.DisplayOptionsJson, w.Version, w.CreatedAt);
+        return new(w.Id, w.Type, w.Title, w.Description, w.FieldsJson, w.ButtonText,
+            w.DisplayOptionsJson, w.Version, w.CreatedAt, snippet);
     }
 }

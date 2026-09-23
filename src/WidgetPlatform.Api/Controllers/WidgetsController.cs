@@ -1,5 +1,6 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using WidgetPlatform.Application.DTOs;
 using WidgetPlatform.Application.Services;
@@ -51,5 +52,17 @@ public class WidgetsController : ControllerBase
     {
         var deleted = await _widgetService.DeleteAsync(OwnerId, id);
         return deleted ? NoContent() : NotFound();
+    }
+
+    [HttpGet("{id}/config")]
+    [AllowAnonymous]
+    [EnableCors("PublicWidgetPolicy")]
+    public async Task<IActionResult> GetConfig(Guid id)
+    {
+        var config = await _widgetService.GetPublicConfigAsync(id);
+        if (config is null) return NotFound();
+
+        Response.Headers.CacheControl = "public, max-age=60";
+        return Ok(config);
     }
 }
