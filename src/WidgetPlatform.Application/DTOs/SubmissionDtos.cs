@@ -4,7 +4,7 @@ using System.Text;
 
 namespace WidgetPlatform.Application.DTOs
 {
-    public record CreateSubmissionRequest(Guid WidgetId, Dictionary<string, string> Data);
+    public record CreateSubmissionRequest(Guid WidgetId, Dictionary<string, string> Data, string? Website = null);
 
     public record SubmissionResponse(Guid Id, Guid WidgetId, DateTime CreatedAt);
 

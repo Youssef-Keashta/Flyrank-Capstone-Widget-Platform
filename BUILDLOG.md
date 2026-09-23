@@ -185,3 +185,41 @@
   Console and Network tab (saw the actual OPTIONS preflight followed by
   the real POST, with Access-Control-Allow-Origin present only where
   expected).
+
+## Widget delivery (embed snippet, public config, versioned script)
+- WidgetResponse now generates and returns an embed snippet
+  (<script src=".../widget.v1.js?id=...">) built from a configurable
+  App:PublicBaseUrl setting rather than hardcoding the host.
+- Added GET /api/widgets/{id}/config: anonymous, CORS-enabled
+  ([EnableCors] on this action specifically, since the rest of
+  WidgetsController stays owner-only/same-origin), Cache-Control:
+  public, max-age=60.
+- Added GET /widget.v1.js as a minimal-API endpoint serving a static
+  JS bundle from a const string in code (not a physical file) with
+  Cache-Control: public, max-age=31536000, immutable — a genuinely
+  versioned, long-cache bundle per the brief's requirement.
+- The script itself: reads its own ?id from the script tag's URL, fetches
+  the public config, dynamically renders a form from the widget's
+  FieldsJson, and wires the form's submit to POST /api/submissions.
+- Rebuilt test-site/index.html to use the REAL embed flow (a single
+  <script src="...widget.v1.js?id=..."> tag) instead of the earlier
+  manual fetch() button — this is the actual mechanism the brief
+  describes (script tag -> config -> render -> submit), not just a proxy
+  for testing CORS/submissions in isolation.
+- Verified end-to-end from the second-origin test site: script loads,
+  config fetches, form renders dynamically with the right fields, real
+  submission succeeds and is stored, and both Cache-Control header
+  values confirmed exactly correct via DevTools Network tab.
+
+## Honeypot spam prevention
+- CreateSubmissionRequest carries an optional Website field, populated by
+  a hidden (off-screen, tabIndex -1, autocomplete off) form input real
+  visitors never see or fill, but a bot's generic form-filler typically
+  will.
+- If populated, SubmitAsync returns a normal-looking 201 success without
+  actually storing anything — deliberately doesn't reveal to the caller
+  that it was caught, since telling a bot "your spam was detected" just
+  teaches it to adapt.
+- Verified via .http: a request with the honeypot field filled returns
+  201 but creates no row in pgAdmin; a normal browser submission (honeypot
+  stays empty) still stores correctly.

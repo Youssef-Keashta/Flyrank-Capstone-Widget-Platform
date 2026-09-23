@@ -34,6 +34,15 @@ public static class WidgetScript
       form.appendChild(document.createElement('br'));
     });
 
+    var honeypot = document.createElement('input');
+    honeypot.type = 'text';
+    honeypot.name = 'website';
+    honeypot.autocomplete = 'off';
+    honeypot.tabIndex = -1;
+    honeypot.style.position = 'absolute';
+    honeypot.style.left = '-9999px';
+    form.appendChild(honeypot);
+
     var submitBtn = document.createElement('button');
     submitBtn.type = 'submit';
     submitBtn.textContent = config.buttonText || 'Submit';
@@ -51,8 +60,8 @@ public static class WidgetScript
       fetch(apiOrigin + '/api/submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ widgetId: widgetId, data: data })
-      })
+        body: JSON.stringify({ widgetId: widgetId, data: data, website: form.elements['website'].value })
+    })
         .then(function (res) { return res.json(); })
         .then(function () {
           resultEl.textContent = 'Thank you!';

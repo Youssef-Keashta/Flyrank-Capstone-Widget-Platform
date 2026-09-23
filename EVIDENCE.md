@@ -129,6 +129,55 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYWEwNzE2O
 }
 ```
 
+## Widget delivery
+
+- [x] Embed snippet generated per widget.
+- [x] Public config endpoint serves a small payload with correct HTTP cache headers.
+- [x] Widget JavaScript is served as a versioned bundle (new version = new URL or cache-bust).
+- [x] The widget renders on a page served from a different origin than the API.
+- [x] Cross-origin submissions work (rendered widget's own form submits successfully).
+
+**Embed snippet included on every widget response:**
+```json
+"embedSnippet": "<script src=\"https://localhost:7111/widget.v1.js?id=07298df4-ee73-4b9f-834c-19987cfe630a\"></script>"
+```
+
+**Public config endpoint — correct cache header, served anonymously:**
+```
+GET https://localhost:7111/api/widgets/07298df4-ee73-4b9f-834c-19987cfe630a/config
+(no Authorization header)
+-------------------------------------------------------------------------
+200 OK
+Cache-Control: public, max-age=60
+Access-Control-Allow-Origin: http://localhost:5500
+Content-Type: application/json; charset=utf-8
+```
+
+**Versioned script bundle — long-cache, immutable:**
+```
+GET https://localhost:7111/widget.v1.js?id=07298df4-ee73-4b9f-834c-19987cfe630a
+-------------------------------------------------------------------------
+200 OK
+Cache-Control: public, max-age=31536000, immutable
+Content-Type: application/javascript
+```
+(Both header values confirmed directly in Chrome DevTools Network tab, Headers panel — not
+inferred from status code alone.)
+
+**Full embed flow verified from the second-origin test site (http://localhost:5500):**
+1. `<script src="https://localhost:7111/widget.v1.js?id=...">` loads (Network tab: `script`, 200).
+2. Script fetches `/api/widgets/{id}/config` (Network tab: `fetch`, 200).
+3. Form is rendered dynamically in the page from the fetched field definitions (a single "Email"
+   input + Subscribe button appeared, matching the widget's FieldsJson — not hardcoded in the
+   test page).
+4. Submitting the rendered form fires a real cross-origin POST to `/api/submissions`, preceded by
+   an OPTIONS preflight (Network tab: `preflight` 204, then `submissions` 201).
+5. Page displays "Thank you!" and the row is confirmed stored in pgAdmin.
+
+This is the actual brief-specified mechanism (script tag → config → render → submit) — distinct
+from the earlier CORS-only test, which called `/api/submissions` directly with a hardcoded widget
+ID and a manually-built form, proving CORS/validation in isolation but not the real embed flow.
+
 ## Public submission API
 
 - [x] Cross-origin submissions work: CORS headers correct, preflight (OPTIONS) handled.
@@ -219,14 +268,6 @@ in order:
 submissions   OPTIONS   204   (Preflight)
 submissions   POST      201   (fetch)
 ```
-Response body from the browser:
-```
-Success: {
-  "id": "d1cb4c0a-099b-4e3b-a330-2cd3bba18c60",
-  "widgetId": "07298df4-ee73-4b9f-834c-19987cfe630a",
-  "createdAt": "2026-09-22T08:58:01.6786769Z"
-}
-```
 
 Step 3 — confirmed the CORS policy is correctly scoped, not globally open: a second button on
 the same test page calling `GET /api/widgets` (an owner-only endpoint) from the same origin was
@@ -236,13 +277,32 @@ Console: Access to fetch at 'https://localhost:7111/api/widgets' from origin
 'http://localhost:5500' has been blocked by CORS policy: No 'Access-Control-Allow-Origin'
 header is present on the requested resource.
 GET https://localhost:7111/api/widgets net::ERR_FAILED 401 (Unauthorized)
-Correctly blocked: Failed to fetch
 ```
 Submissions endpoint still worked in the same test run — confirming the CORS policy is applied
 per-endpoint (via [EnableCors]), not globally.
 
 ## Abuse protection
-- [ ] Not yet built.
+
+- [ ] Rate limiting per IP and/or per widget returns 429 under a burst — and the API keeps serving legitimate traffic.
+  - Not yet built.
+- [x] At least one spam-prevention technique (honeypot field, token, or heuristic) demonstrably blocks a spam submission.
+
+**Honeypot field tripped — looks like success to the caller, nothing is stored:**
+```
+POST https://localhost:7111/api/submissions
+Content-Type: application/json
+
+{
+  "widgetId": "07298df4-ee73-4b9f-834c-19987cfe630a",
+  "data": { "email": "spammer@example.com" },
+  "website": "http://spam.com"
+}
+-------------------------------------------------------------------------
+201 Created
+(response body returned, but confirmed in pgAdmin: submission count unchanged — no row created)
+```
+A normal browser submission through the rendered widget (honeypot field stays empty, since real
+visitors never see or fill it) was re-confirmed to still store correctly after this change.
 
 ## Enrichment & safe side effects
 - [ ] Not yet built.

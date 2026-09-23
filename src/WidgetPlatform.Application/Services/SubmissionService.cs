@@ -25,6 +25,11 @@ namespace WidgetPlatform.Application.Services
             if (widget is null)
                 return new SubmissionResult(false, "Widget not found");
 
+            if (!string.IsNullOrEmpty(request.Website))
+            {
+                return new SubmissionResult(true, null, new SubmissionResponse(Guid.NewGuid(), widget.Id, DateTime.UtcNow));
+            }
+
             var fields = JsonSerializer.Deserialize<List<WidgetFieldDefinition>>(widget.FieldsJson, JsonOptions)
              ?? new List<WidgetFieldDefinition>();
 
