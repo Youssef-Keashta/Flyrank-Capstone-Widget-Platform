@@ -318,7 +318,7 @@ visitors never see or fill it) was re-confirmed to still store correctly after t
 
 - [x] IP → geo enrichment uses a provider fallback chain: provider A down → provider B answers → submission enriched.
 - [x] All providers down → submission still succeeds (without geo). Degrade, never fail.
-- [ ] A failing confirmation email/webhook does not prevent the submission from being stored.
+- [x] A failing confirmation email/webhook does not prevent the submission from being stored.
 
 **Provider A up:**
 GeoProvider: ProviderA, Country: United States, City: New York
@@ -328,6 +328,16 @@ GeoProvider: ProviderB, Country: United States, City: San Francisco
 
 **Both down — submission still succeeds, geo fields null:**
 GeoProvider: null, Country: null, City: null (row still created, 201 returned)
+
+**Success case:**
+201 Created; console: "Email sent: new submission ac67f216-... for widget 07298df4-..."
+
+**Simulated failure — submission still succeeds:**
+201 Created (unchanged); row confirmed in pgAdmin
+console: warn: ...SubmissionService[0] Notification failed for submission 98b1de48-...
+- submission itself already saved successfully.
+System.InvalidOperationException: Simulated email provider outage.
+
 
 ## Documentation
 - [ ] Not yet built.

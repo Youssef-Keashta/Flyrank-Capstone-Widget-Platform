@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using WidgetPlatform.Application.DTOs;
 using WidgetPlatform.Application.Models;
 using WidgetPlatform.Data;
@@ -70,6 +72,20 @@ namespace WidgetPlatform.Application.Services
             _db.Submissions.Add(submission);
             await _db.SaveChangesAsync();
 
+            _ = Task.Run(async () =>
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+                try
+                {
+                    await notificationService.NotifyNewSubmissionAsync(submission.Id, submission.WidgetId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Notification failed for submission {SubmissionId} — submission itself already saved successfully.", submission.Id);
+                }
+            });
+
             return new SubmissionResult(true, null, new SubmissionResponse(submission.Id, submission.WidgetId, submission.CreatedAt));
         }
         
@@ -79,6 +95,18 @@ namespace WidgetPlatform.Application.Services
         {
             _db = db;
             _geoService = geoService;
+        }
+
+        private readonly IServiceScopeFactory _scopeFactory;
+        private readonly ILogger<SubmissionService> _logger;
+
+        public SubmissionService(WidgetPlatformDbContext db, IGeoEnrichmentService geoService,
+            IServiceScopeFactory scopeFactory, ILogger<SubmissionService> logger)
+        {
+            _db = db;
+            _geoService = geoService;
+            _scopeFactory = scopeFactory;
+            _logger = logger;
         }
     }
 }

@@ -202,3 +202,12 @@ Content-Type: application/json
   "widgetId": "07298df4-ee73-4b9f-834c-19987cfe630a",
   "data": { "email": "geo-test-1@example.com" }
 }
+
+###
+POST https://localhost:7111/api/submissions
+Content-Type: application/json
+
+{
+  "widgetId": "07298df4-ee73-4b9f-834c-19987cfe630a",
+  "data": { "email": "notify-test-1@example.com" }
+}
