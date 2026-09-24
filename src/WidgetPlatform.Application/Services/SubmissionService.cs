@@ -9,6 +9,7 @@ using WidgetPlatform.Application.DTOs;
 using WidgetPlatform.Application.Models;
 using WidgetPlatform.Data;
 using WidgetPlatform.Domain;
+using Microsoft.EntityFrameworkCore;
 
 namespace WidgetPlatform.Application.Services
 {
@@ -22,11 +23,20 @@ namespace WidgetPlatform.Application.Services
 
         public SubmissionService(WidgetPlatformDbContext db) => _db = db;
 
-        public async Task<SubmissionResult> SubmitAsync(CreateSubmissionRequest request, string? ipAddress)
+        public async Task<SubmissionResult> SubmitAsync(CreateSubmissionRequest request, string? ipAddress, string? idempotencyKey)
         {
             var widget = await _db.Widgets.FindAsync(request.WidgetId);
             if (widget is null)
                 return new SubmissionResult(false, "Widget not found");
+
+            if (!string.IsNullOrEmpty(idempotencyKey))
+            {
+                var existing = await _db.Submissions.FirstOrDefaultAsync(s =>
+                    s.WidgetId == request.WidgetId && s.IdempotencyKey == idempotencyKey);
+
+                if (existing is not null)
+                    return new SubmissionResult(true, null, new SubmissionResponse(existing.Id, existing.WidgetId, existing.CreatedAt));
+            }
 
             if (!string.IsNullOrEmpty(request.Website))
             {
@@ -58,6 +68,7 @@ namespace WidgetPlatform.Application.Services
                 OwnerId = widget.OwnerId,
                 DataJson = System.Text.Json.JsonSerializer.Serialize(request.Data),
                 IpAddress = ipAddress,
+                IdempotencyKey = idempotencyKey,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -88,7 +99,7 @@ namespace WidgetPlatform.Application.Services
 
             return new SubmissionResult(true, null, new SubmissionResponse(submission.Id, submission.WidgetId, submission.CreatedAt));
         }
-        
+
         private readonly IGeoEnrichmentService _geoService;
 
         public SubmissionService(WidgetPlatformDbContext db, IGeoEnrichmentService geoService)

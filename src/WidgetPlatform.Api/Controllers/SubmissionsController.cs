@@ -20,12 +20,11 @@ namespace flyrank_capstone_widget_platform.Controllers
         public async Task<IActionResult> Create(CreateSubmissionRequest request)
         {
             var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
-            var result = await _submissionService.SubmitAsync(request, ip);
+            var idempotencyKey = Request.Headers["Idempotency-Key"].FirstOrDefault();
+            var result = await _submissionService.SubmitAsync(request, ip, idempotencyKey);
 
             if (!result.Succeeded)
-                return result.Error == "Widget not found"
-                    ? NotFound(new { error = result.Error })
-                    : BadRequest(new { error = result.Error });
+                return result.Error == "Widget not found" ? NotFound(new { error = result.Error }) : BadRequest(new { error = result.Error });
 
             return CreatedAtAction(null, result.Result);
         }

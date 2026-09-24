@@ -19,5 +19,7 @@ namespace WidgetPlatform.Domain
         public string? GeoProvider { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        
+        public string? IdempotencyKey { get; set; }
     }
 }

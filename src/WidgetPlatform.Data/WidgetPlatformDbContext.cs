@@ -18,6 +18,8 @@ namespace WidgetPlatform.Data
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+            builder.Entity<Submission>()
+                .HasIndex(s => new { s.WidgetId, s.IdempotencyKey });
         }
     }
 }

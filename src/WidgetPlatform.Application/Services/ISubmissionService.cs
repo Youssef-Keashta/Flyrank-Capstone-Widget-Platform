@@ -7,6 +7,6 @@ namespace WidgetPlatform.Application.Services
 {
     public interface ISubmissionService
     {
-        Task<SubmissionResult> SubmitAsync(CreateSubmissionRequest request, string? ipAddress);
+        Task<SubmissionResult> SubmitAsync(CreateSubmissionRequest request, string? ipAddress, string? idempotencyKey);
     }
 }
