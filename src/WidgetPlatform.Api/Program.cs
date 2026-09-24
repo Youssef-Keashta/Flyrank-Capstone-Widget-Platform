@@ -8,6 +8,8 @@ using Microsoft.IdentityModel.Tokens;
 using WidgetPlatform.Application.Services;
 using WidgetPlatform.Data;
 using WidgetPlatform.Domain;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 namespace WidgetPlatform.Api
 {
@@ -73,6 +75,23 @@ namespace WidgetPlatform.Api
                 });
             });
 
+            builder.Services.AddRateLimiter(options =>
+            {
+                options.AddFixedWindowLimiter("SubmissionPolicy", opt =>
+                {
+                    opt.PermitLimit = 5;
+                    opt.Window = TimeSpan.FromSeconds(10);
+                    opt.QueueLimit = 0;
+                });
+
+                options.OnRejected = async (context, token) =>
+                {
+                    context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                    context.HttpContext.Response.ContentType = "application/json";
+                    await context.HttpContext.Response.WriteAsJsonAsync(new { error = "Too many requests. Please try again shortly." }, token);
+                };
+            });
+
             builder.WebHost.ConfigureKestrel(options =>
             {
                 options.Limits.MaxRequestBodySize = 16 * 1024;
@@ -102,6 +121,7 @@ namespace WidgetPlatform.Api
 
             app.UseHttpsRedirection();
             app.UseCors();
+            app.UseRateLimiter();
             app.UseAuthentication();
             app.UseAuthorization();
 

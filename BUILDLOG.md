@@ -223,3 +223,18 @@
 - Verified via .http: a request with the honeypot field filled returns
   201 but creates no row in pgAdmin; a normal browser submission (honeypot
   stays empty) still stores correctly.
+
+## Rate limiting
+- Added ASP.NET Core's built-in rate limiter (AddRateLimiter, no external
+  package needed) as a fixed-window policy: 5 requests / 10 seconds, keyed
+  per-IP by default, applied only to SubmissionsController's Create action
+  via [EnableRateLimiting].
+- Custom OnRejected handler returns clean JSON with a 429 status instead of
+  the framework's bare empty response, consistent with the rest of the
+  API's error format.
+- Verified via a burst of 7 requests: first 5 succeeded (201), 6th was
+  rejected (429), then after waiting past the 10-second window a 7th
+  request succeeded again (201) — confirms the limiter resets and doesn't
+  permanently block legitimate traffic, per the brief's explicit
+  requirement.
+

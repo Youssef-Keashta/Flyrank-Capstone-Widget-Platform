@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using WidgetPlatform.Application.DTOs;
 using WidgetPlatform.Application.Services;
 
@@ -15,6 +16,7 @@ namespace flyrank_capstone_widget_platform.Controllers
         public SubmissionsController(ISubmissionService submissionService) => _submissionService = submissionService;
 
         [HttpPost]
+        [EnableRateLimiting("SubmissionPolicy")]
         public async Task<IActionResult> Create(CreateSubmissionRequest request)
         {
             var result = await _submissionService.SubmitAsync(request);

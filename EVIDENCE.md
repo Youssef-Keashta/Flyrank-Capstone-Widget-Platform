@@ -283,9 +283,19 @@ per-endpoint (via [EnableCors]), not globally.
 
 ## Abuse protection
 
-- [ ] Rate limiting per IP and/or per widget returns 429 under a burst — and the API keeps serving legitimate traffic.
-  - Not yet built.
+- [x] Rate limiting per IP and/or per widget returns 429 under a burst — and the API keeps serving legitimate traffic.
 - [x] At least one spam-prevention technique (honeypot field, token, or heuristic) demonstrably blocks a spam submission.
+
+**Rate limiting — burst of 6 rapid requests, then 1 after window reset:**
+```
+Requests 1-5 (same widget, valid data): 201, 201, 201, 201, 201
+Request 6 (immediately after):          429
+{"error":"Too many requests. Please try again shortly."}
+(waited 10+ seconds)
+Request 7:                              201
+```
+Confirms both halves of the requirement: the burst is rejected, and legitimate traffic is served
+again once the window resets rather than being permanently blocked.
 
 **Honeypot field tripped — looks like success to the caller, nothing is stored:**
 ```
