@@ -19,7 +19,8 @@ namespace flyrank_capstone_widget_platform.Controllers
         [EnableRateLimiting("SubmissionPolicy")]
         public async Task<IActionResult> Create(CreateSubmissionRequest request)
         {
-            var result = await _submissionService.SubmitAsync(request);
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var result = await _submissionService.SubmitAsync(request, ip);
 
             if (!result.Succeeded)
                 return result.Error == "Widget not found"

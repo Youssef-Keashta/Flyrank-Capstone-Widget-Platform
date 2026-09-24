@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using WidgetPlatform.Application.DTOs;
@@ -19,7 +20,7 @@ namespace WidgetPlatform.Application.Services
 
         public SubmissionService(WidgetPlatformDbContext db) => _db = db;
 
-        public async Task<SubmissionResult> SubmitAsync(CreateSubmissionRequest request)
+        public async Task<SubmissionResult> SubmitAsync(CreateSubmissionRequest request, string? ipAddress)
         {
             var widget = await _db.Widgets.FindAsync(request.WidgetId);
             if (widget is null)
@@ -52,15 +53,32 @@ namespace WidgetPlatform.Application.Services
             {
                 Id = Guid.NewGuid(),
                 WidgetId = widget.Id,
-                OwnerId = widget.OwnerId, // denormalized, per your design doc
-                DataJson = JsonSerializer.Serialize(request.Data),
+                OwnerId = widget.OwnerId,
+                DataJson = System.Text.Json.JsonSerializer.Serialize(request.Data),
+                IpAddress = ipAddress,
                 CreatedAt = DateTime.UtcNow
             };
+
+            var geo = await _geoService.EnrichAsync(ipAddress ?? "");
+            if (geo is not null)
+            {
+                submission.Country = geo.Country;
+                submission.City = geo.City;
+                submission.GeoProvider = geo.Provider;
+            }
 
             _db.Submissions.Add(submission);
             await _db.SaveChangesAsync();
 
             return new SubmissionResult(true, null, new SubmissionResponse(submission.Id, submission.WidgetId, submission.CreatedAt));
+        }
+        
+        private readonly IGeoEnrichmentService _geoService;
+
+        public SubmissionService(WidgetPlatformDbContext db, IGeoEnrichmentService geoService)
+        {
+            _db = db;
+            _geoService = geoService;
         }
     }
 }

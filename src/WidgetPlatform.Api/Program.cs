@@ -92,6 +92,8 @@ namespace WidgetPlatform.Api
                 };
             });
 
+            builder.Services.AddScoped<IGeoEnrichmentService, GeoEnrichmentService>();
+
             builder.WebHost.ConfigureKestrel(options =>
             {
                 options.Limits.MaxRequestBodySize = 16 * 1024;

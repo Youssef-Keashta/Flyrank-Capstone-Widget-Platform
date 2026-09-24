@@ -315,7 +315,19 @@ A normal browser submission through the rendered widget (honeypot field stays em
 visitors never see or fill it) was re-confirmed to still store correctly after this change.
 
 ## Enrichment & safe side effects
-- [ ] Not yet built.
+
+- [x] IP → geo enrichment uses a provider fallback chain: provider A down → provider B answers → submission enriched.
+- [x] All providers down → submission still succeeds (without geo). Degrade, never fail.
+- [ ] A failing confirmation email/webhook does not prevent the submission from being stored.
+
+**Provider A up:**
+GeoProvider: ProviderA, Country: United States, City: New York
+
+**Provider A down, Provider B answers:**
+GeoProvider: ProviderB, Country: United States, City: San Francisco
+
+**Both down — submission still succeeds, geo fields null:**
+GeoProvider: null, Country: null, City: null (row still created, 201 returned)
 
 ## Documentation
 - [ ] Not yet built.
