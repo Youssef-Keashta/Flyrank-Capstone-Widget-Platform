@@ -96,6 +96,8 @@ namespace WidgetPlatform.Api
 
             builder.Services.AddScoped<INotificationService, NotificationService>();
 
+            builder.Services.AddScoped<IDashboardService, DashboardService>();
+
             builder.WebHost.ConfigureKestrel(options =>
             {
                 options.Limits.MaxRequestBodySize = 16 * 1024;

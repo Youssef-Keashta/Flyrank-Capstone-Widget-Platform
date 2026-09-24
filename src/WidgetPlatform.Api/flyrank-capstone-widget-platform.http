@@ -221,3 +221,15 @@ Idempotency-Key: test-key-001
   "widgetId": "07298df4-ee73-4b9f-834c-19987cfe630a",
   "data": { "email": "idempotency-test@example.com" }
 }
+
+### As tenant A: get submissions for own widget
+GET https://localhost:7111/api/dashboard/widgets/07298df4-ee73-4b9f-834c-19987cfe630a/submissions
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYWEwNzE2OS04ZGMxLTRiYzgtYWJjYS04NGY4M2E0ZmQ1MzMiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJqdGkiOiI1YWU3YzgxMC00M2M3LTRiOTMtYmU1My0zMTViY2Q4NDEwNTAiLCJleHAiOjE3OTAyOTQ5NjcsImlzcyI6IldpZGdldFBsYXRmb3JtQXBpIiwiYXVkIjoiV2lkZ2V0UGxhdGZvcm1DbGllbnQifQ.mUyrTnUL2RNEWGVdV3tw6nAkp-EKYX4fhVjotvaGZ0I
+
+### As tenant A: get stats
+GET https://localhost:7111/api/dashboard/widgets/07298df4-ee73-4b9f-834c-19987cfe630a/stats
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYWEwNzE2OS04ZGMxLTRiYzgtYWJjYS04NGY4M2E0ZmQ1MzMiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJqdGkiOiI1YWU3YzgxMC00M2M3LTRiOTMtYmU1My0zMTViY2Q4NDEwNTAiLCJleHAiOjE3OTAyOTQ5NjcsImlzcyI6IldpZGdldFBsYXRmb3JtQXBpIiwiYXVkIjoiV2lkZ2V0UGxhdGZvcm1DbGllbnQifQ.mUyrTnUL2RNEWGVdV3tw6nAkp-EKYX4fhVjotvaGZ0I
+
+### As tenant B: try same widget - should be 404
+GET https://localhost:7111/api/dashboard/widgets/07298df4-ee73-4b9f-834c-19987cfe630a/submissions
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhYzU4YWI5ZS0yMTMzLTQ3NDAtYTE3NS1jYmUzNjhlM2Q4ODciLCJlbWFpbCI6InRlc3QzQGV4YW1wbGUuY29tIiwianRpIjoiZDlmZWEyMmMtMmU1MS00NzEyLWJmODMtZTA3MWM0YWY5ODk2IiwiZXhwIjoxNzkwMjk0OTk5LCJpc3MiOiJXaWRnZXRQbGF0Zm9ybUFwaSIsImF1ZCI6IldpZGdldFBsYXRmb3JtQ2xpZW50In0.754If3DvVOxcBOJWBGCb3jilSa_z2rn5NwK7U9uyTzc
