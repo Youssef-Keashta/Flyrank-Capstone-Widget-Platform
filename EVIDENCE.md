@@ -340,4 +340,15 @@ System.InvalidOperationException: Simulated email provider outage.
 
 
 ## Documentation
-- [ ] Not yet built.
+
+- [x] README with architecture diagram, setup instructions, and API documentation; required files present.
+
+## Shared requirements (Section 13)
+
+- [x] Layered architecture — Domain / Data / Application / Api are four separate projects with enforced references (see BUILDLOG.md "Solution structure").
+- [x] Validation at the boundary — bad input returns clean 4xx, never 500 (see "Public submission API" above: 400 missing field, 404 unknown widget, 413 oversized, 429 rate limit).
+- [x] ≥1 background job — email notification runs via Task.Run with its own DI scope, off the request path; failure is caught and logged, never blocks the response (see "Enrichment & safe side effects").
+- [x] Real persistence — schema managed via EF Core migrations; explicit indexes on Submission(WidgetId), Submission(OwnerId, CreatedAt), Widget(OwnerId), Submission(WidgetId, IdempotencyKey); tenant isolation enforced at query level.
+- [x] Idempotency — Idempotency-Key header, scoped per widget. Same key sent twice returned identical submission id "9186b152-1961-4809-847d-e8fdad1a0ef5" both times; exactly one row in the database. A different key created a distinct row.
+- [x] Secrets clean — JWT signing key and DB connection string live in user-secrets, Docker credentials in .env (git-ignored), .env.example committed with placeholders only.
+- [ ] Cost tracked, if AI is used — N/A, no AI calls in the application itself.

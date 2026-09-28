@@ -1,0 +1,18 @@
+run: docker compose up -d && dotnet run --project src/WidgetPlatform.Api
+seed: none - create a user, login, and widget via /api/auth/register, /api/auth/login, /api/widgets
+test: none
+base_url: https://localhost:7111
+endpoints:
+  - POST /api/auth/register
+  - POST /api/auth/login
+  - GET /api/auth/me
+  - POST /api/widgets
+  - GET /api/widgets
+  - GET /api/widgets/{id}
+  - PUT /api/widgets/{id}
+  - DELETE /api/widgets/{id}
+  - GET /api/widgets/{id}/config
+  - GET /widget.v1.js
+  - POST /api/submissions
+  - GET /api/dashboard/widgets/{id}/submissions
+  - GET /api/dashboard/widgets/{id}/stats

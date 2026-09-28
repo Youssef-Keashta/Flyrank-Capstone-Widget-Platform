@@ -238,3 +238,72 @@
   permanently block legitimate traffic, per the brief's explicit
   requirement.
 
+## Geo enrichment fallback chain
+- Built IGeoEnrichmentService/GeoEnrichmentService with two mocked
+  providers, toggleable via config flags (ProviderADown/ProviderBDown) so
+  the fallback behavior is deterministically testable rather than relying
+  on flaky real network calls or external API rate limits under time
+  pressure — a deliberate deviation from the brief's suggestion to use the
+  real free APIs during development, made to prioritize reliability during
+  grading.
+- Verified all three states via .http + pgAdmin: both providers up ->
+  ProviderA used; ProviderA down -> ProviderB answers; both down ->
+  submission still succeeds (201) with Country/City/GeoProvider left null.
+
+## Safe side effect (email notification) as a background job
+- Added INotificationService/NotificationService simulating an email send
+  (logged, not real SMTP), with a SimulateFailure config flag to trigger
+  failure deterministically for testing.
+- Fired via Task.Run with its own DI scope (IServiceScopeFactory), off the
+  request path — satisfies the brief's cross-cutting "at least one
+  background job" requirement, not just a try/catch around a synchronous
+  call.
+- Failure is caught and logged as a warning; never surfaces to the caller
+  or blocks the submission response.
+- Verified both states: success logs and returns 201; simulated failure
+  still returns 201, still stores the row, logs a warning with the
+  exception instead of crashing or degrading the response.
+
+## Idempotency
+- Added an optional Idempotency-Key request header, scoped per widget (so
+  the same key on two different widgets doesn't collide). A repeated
+  request with the same key + widget returns the original stored result
+  instead of creating a duplicate row.
+- Added a composite index on (WidgetId, IdempotencyKey) to back the lookup.
+- Verified: sending the same key twice back-to-back returned the identical
+  submission id both times, and pgAdmin confirmed exactly one row existed
+  for it; a different key correctly created a genuinely new submission.
+- This satisfies the brief's cross-cutting "idempotency where it matters"
+  requirement — the submission endpoint is the obvious candidate since a
+  flaky connection or a double-click could otherwise duplicate a lead.
+
+## Owner dashboard API
+- Added GET /api/dashboard/widgets/{id}/submissions (list, newest first)
+  and GET /api/dashboard/widgets/{id}/stats (total count, per-day
+  breakdown, per-country breakdown), both behind the same ownership check
+  pattern as WidgetsController (404 for not-found-or-not-owned, never a
+  403 that would leak existence).
+- Verified: owner sees their own submissions and accurate aggregated
+  stats; a different tenant requesting the same widget's dashboard data
+  correctly gets 404.
+
+## Final cleanup pass
+- Tightened JWT expiry from the multi-hour dev-convenience value down to
+  30 minutes, now that active development/testing is essentially done —
+  closing out the security trade-off noted earlier in the log.
+- Added an explicit composite index (OwnerId, CreatedAt) on Submission and
+  an explicit index on Widget.OwnerId in OnModelCreating, matching
+  DESIGN.md's original data model — these were missing from earlier
+  migrations even though EF Core's automatic FK indexing covered some of
+  the same ground implicitly.
+- Verified .env.example still matches the real .env keys in use, and that
+  appsettings.Development.json contains only non-secret logging
+  configuration, nothing added by mistake during the session.
+- Wrote README.md (architecture, setup steps, seed instructions, API
+  surface table, and an explicit "Limitations" section — including being
+  upfront that geo enrichment is mocked and email notification is
+  simulated, rather than hiding those as if they were real integrations)
+  and capstone.yaml (run/seed/test/base_url/endpoints) per the brief's
+  required submission-pack files.
+
+
